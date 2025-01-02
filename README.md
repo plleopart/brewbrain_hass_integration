@@ -38,7 +38,7 @@ To perform secured calls to the webpage, this integration uses your Brew Brain u
 ## Dependencies
 
 This integration requires the following Python packages:
-- [bs4](hhttps://pypi.org/project/beautifulsoup4)
+- [bs4](https://pypi.org/project/beautifulsoup4)
 - [aiohttp](https://docs.aiohttp.org/en/stable/)
 
 These dependencies will be installed automatically when you add the integration.
