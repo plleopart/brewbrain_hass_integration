@@ -13,7 +13,7 @@ To perform secured calls to the webpage, this integration uses your Brew Brain u
 
 1. Clone this repository into your Home Assistant `custom_components` directory:
     ```sh
-    git clone https://github.com/plleopart/brewbrain_hass_integration.git custom_components/brewbrain
+    git clone https://github.com/plleopart/brewbrain_hass_integration.git
     ```
 
 2. Restart Home Assistant.
