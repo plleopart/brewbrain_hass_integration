@@ -1,0 +1,17 @@
+{
+  "domain": "brew_brain",
+  "name": "BrewBrain",
+  "codeowners": ["@plleopart"],
+  "dependencies": [],
+  "documentation": "",
+  "iot_class": "cloud_polling",
+  "requirements": ["bs4", "aiohttp"],
+  "version": "0.1.0",
+  "config_flow": true,
+  "icons": [
+    {
+      "name": "icon",
+      "path": "icon.png"
+    }
+  ]
+}
