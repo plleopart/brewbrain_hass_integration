@@ -153,6 +153,7 @@ async def fetch_float_data(cookie, float_id):
         for measurement in measurements:
             name = measurement.find('span', class_=CLASS_MEASUEMENT_SINGLE_PAGE).text.strip()
             value = measurement.find('b').find('span').text.strip()
+            value = re.findall(r"[-+]?\d+(?:\.\d{1,3})?", value)[0]
 
             _LOGGER.info("Measurement: %s: %s", name, value)
             float_data[name] = value
