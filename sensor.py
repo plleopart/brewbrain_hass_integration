@@ -5,6 +5,8 @@ from homeassistant.components.sensor import SensorEntity
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.helpers.device_registry import async_get as async_get_device_registry
 from homeassistant.helpers.entity import DeviceInfo
+from homeassistant.const import TEMP_CELSIUS, ELECTRIC_POTENTIAL_VOLT
+
 
 from .const import DOMAIN
 
@@ -34,7 +36,7 @@ class BrewBrainSensor(CoordinatorEntity, SensorEntity):
         self.float_id = float_id
         self.float_name = float_name
         self.sensor_type = sensor_type
-        self._attr_unit_of_measurement = unit_of_measurement
+        self._attr_native_unit_of_measurement = unit_of_measurement
         self._attr_name = f"{float_name} {sensor_type}"
         self._attr_unique_id = f"{float_id}_{sensor_type}"
         self._state = None
@@ -66,7 +68,7 @@ class BrewBrainTemperatureSensor(BrewBrainSensor):
     """Representation of a Brew Brain Temperature sensor."""
 
     def __init__(self, coordinator, float_id, float_name, entry_id):
-        super().__init__(coordinator, float_id, float_name, entry_id, "Temperature", "°C", "mdi:thermometer", "temperature")
+        super().__init__(coordinator, float_id, float_name, entry_id, "Temperature", TEMP_CELSIUS, "mdi:thermometer", "temperature")
 
 
 class BrewBrainSGSensor(BrewBrainSensor):
@@ -80,4 +82,4 @@ class BrewBrainVoltageSensor(BrewBrainSensor):
     """Representation of a Brew Brain Voltage sensor."""
 
     def __init__(self, coordinator, float_id, float_name, entry_id):
-        super().__init__(coordinator, float_id, float_name, entry_id, "Voltage", "V", "mdi:flash", "voltage")
+        super().__init__(coordinator, float_id, float_name, entry_id, "Voltage", ELECTRIC_POTENTIAL_VOLT, "mdi:flash", "voltage")
