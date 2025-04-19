@@ -8,7 +8,6 @@ from homeassistant.helpers.entity import DeviceInfo
 
 
 from .const import DOMAIN
-from .const import TEMP_CELSIUS, ELECTRIC_POTENTIAL_VOLT
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -68,7 +67,7 @@ class BrewBrainTemperatureSensor(BrewBrainSensor):
     """Representation of a Brew Brain Temperature sensor."""
 
     def __init__(self, coordinator, float_id, float_name, entry_id):
-        super().__init__(coordinator, float_id, float_name, entry_id, "Temperature", TEMP_CELSIUS, "mdi:thermometer", "temperature")
+        super().__init__(coordinator, float_id, float_name, entry_id, "Temperature", "ºC", "mdi:thermometer", "temperature")
 
 
 class BrewBrainSGSensor(BrewBrainSensor):
@@ -82,4 +81,4 @@ class BrewBrainVoltageSensor(BrewBrainSensor):
     """Representation of a Brew Brain Voltage sensor."""
 
     def __init__(self, coordinator, float_id, float_name, entry_id):
-        super().__init__(coordinator, float_id, float_name, entry_id, "Voltage", ELECTRIC_POTENTIAL_VOLT, "mdi:flash", "voltage")
+        super().__init__(coordinator, float_id, float_name, entry_id, "Voltage", "V", "mdi:flash", "voltage")
