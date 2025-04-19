@@ -5,10 +5,10 @@ from homeassistant.components.sensor import SensorEntity
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.helpers.device_registry import async_get as async_get_device_registry
 from homeassistant.helpers.entity import DeviceInfo
-from homeassistant.const import TEMP_CELSIUS, ELECTRIC_POTENTIAL_VOLT
 
 
 from .const import DOMAIN
+from .const import TEMP_CELSIUS, ELECTRIC_POTENTIAL_VOLT
 
 _LOGGER = logging.getLogger(__name__)
 
