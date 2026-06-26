@@ -19,9 +19,9 @@ async def async_setup_entry(hass, entry, async_add_entities):
     for float in coordinator.floats:
         float_id = float['id']
         float_name = float['name']
-        entities.append(BrewBrainTemperatureSensor(coordinator, float_id, float_name, entry.entry_id))
-        entities.append(BrewBrainSGSensor(coordinator, float_id, float_name, entry.entry_id))
-        entities.append(BrewBrainVoltageSensor(coordinator, float_id, float_name, entry.entry_id))
+        entities.append(BrewBrainTemperatureSensor(coordinator, float_id, float_name))
+        entities.append(BrewBrainSGSensor(coordinator, float_id, float_name))
+        entities.append(BrewBrainBatterySensor(coordinator, float_id, float_name))
 
     async_add_entities(entities)
 
@@ -29,7 +29,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
 class BrewBrainSensor(CoordinatorEntity, SensorEntity):
     """Representation of a Brew Brain sensor."""
 
-    def __init__(self, coordinator, float_id, float_name, entry_id, sensor_type, unit_of_measurement, icon, device_class=None):
+    def __init__(self, coordinator, float_id, float_name, sensor_type, unit_of_measurement, icon, device_class=None):
         """Initialize the sensor."""
         super().__init__(coordinator)
         self.float_id = float_id
@@ -38,7 +38,8 @@ class BrewBrainSensor(CoordinatorEntity, SensorEntity):
         self._attr_native_unit_of_measurement = unit_of_measurement
         self._attr_name = f"{float_name} {sensor_type}"
         self._attr_unique_id = f"{float_id}_{sensor_type}"
-        self._state = None
+        self._state = 0.0
+        self._last_valid_value = 0.0
         self._attr_icon = icon
         self._attr_device_class = device_class
         self._attr_state_class = "measurement"
@@ -47,38 +48,67 @@ class BrewBrainSensor(CoordinatorEntity, SensorEntity):
             name=float_name,
             manufacturer="Brew Brain",
             model="Float",
-            via_device=(DOMAIN, entry_id),
         )
+
+    def _parse_numeric_value(self, value):
+        """Convert a raw coordinator value to a float or return None if invalid."""
+        if value in (None, "", "None"):
+            return None
+
+        try:
+            parsed = float(value)
+        except (TypeError, ValueError):
+            return None
+
+        if parsed != parsed:
+            return None
+
+        return parsed
+
+    @property
+    def native_value(self):
+        """Return the latest valid numeric reading, falling back to the last cached value."""
+        data = self.coordinator.data.get(self.float_id) if self.coordinator.data else None
+        raw_value = data.get(self.sensor_type) if data else None
+        parsed_value = self._parse_numeric_value(raw_value)
+
+        if parsed_value is not None:
+            self._last_valid_value = parsed_value
+            self._state = parsed_value
+            _LOGGER.debug("Retrieved state for %s: %s", self.name, parsed_value)
+            return parsed_value
+
+        if self._last_valid_value is not None:
+            self._state = self._last_valid_value
+            _LOGGER.debug("Using cached state for %s: %s", self.name, self._last_valid_value)
+            return self._last_valid_value
+
+        self._state = 0.0
+        _LOGGER.warning("No valid data found for float_id %s and sensor_type %s", self.float_id, self.sensor_type)
+        return 0.0
 
     @property
     def state(self):
         """Return the state of the sensor."""
-        data = self.coordinator.data.get(self.float_id)
-        _LOGGER.debug("Retrieving state for %s", self.name)
-        if data:
-            self._state = data.get(self.sensor_type)
-            _LOGGER.debug("Retrieved state for %s: %s", self.name, self._state)
-        else:
-            _LOGGER.warning("No data found for float_id %s and sensor_type %s", self.float_id, self.sensor_type)
-        return self._state
+        return self.native_value
     
 
 class BrewBrainTemperatureSensor(BrewBrainSensor):
     """Representation of a Brew Brain Temperature sensor."""
 
-    def __init__(self, coordinator, float_id, float_name, entry_id):
-        super().__init__(coordinator, float_id, float_name, entry_id, "Temperature", "ºC", "mdi:thermometer", "temperature")
+    def __init__(self, coordinator, float_id, float_name):
+        super().__init__(coordinator, float_id, float_name, "Temperature", "ºC", "mdi:thermometer", "temperature")
 
 
 class BrewBrainSGSensor(BrewBrainSensor):
     """Representation of a Brew Brain Specific Gravity sensor."""
 
-    def __init__(self, coordinator, float_id, float_name, entry_id):
-        super().__init__(coordinator, float_id, float_name, entry_id, "SG", None, "mdi:scale", None)
+    def __init__(self, coordinator, float_id, float_name):
+        super().__init__(coordinator, float_id, float_name, "SG", None, "mdi:scale", None)
 
 
-class BrewBrainVoltageSensor(BrewBrainSensor):
-    """Representation of a Brew Brain Voltage sensor."""
+class BrewBrainBatterySensor(BrewBrainSensor):
+    """Representation of a Brew Brain Battery sensor."""
 
-    def __init__(self, coordinator, float_id, float_name, entry_id):
-        super().__init__(coordinator, float_id, float_name, entry_id, "Voltage", "V", "mdi:flash", "voltage")
+    def __init__(self, coordinator, float_id, float_name):
+        super().__init__(coordinator, float_id, float_name, "Battery", "V", "mdi:battery", "voltage")

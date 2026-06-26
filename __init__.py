@@ -111,7 +111,7 @@ async def list_floats(cookie):
 
     for float in floats:
         a_element = float.find('a')
-        name = a_element.text
+        name = a_element.text.strip()
         href = a_element['href']
         float_id = href.split('/')[-1]
         float_ids.append({'name': name, 'id': float_id})
@@ -125,12 +125,35 @@ async def fetch_float_data(cookie, float_id):
     _LOGGER.info("Fetching data for float: %s", float_id)
     float_motherboard_page = await fetch_secured_data(cookie, URL_FLOAT + float_id)
 
-
     soup = BeautifulSoup(float_motherboard_page, 'html.parser')
+
+    # Parse current measurements directly from the page HTML first.
+    container = soup.find('div', class_=CLASS_MEASUREMENT)
+    if container is not None:
+        measurements = container.findAll('div', class_=CLASS_BREW_LATES_MEASUREMENTS)
+        if not measurements:
+            _LOGGER.warning("No measurements found in Brew Brain page for float %s", float_id)
+
+        for measurement in measurements:
+            measurand = measurement.find('span', class_=CLASS_MEASUEMENT_SINGLE_PAGE)
+            value_tag = measurement.find('b').find('span') if measurement.find('b') else None
+            if not measurand or not value_tag:
+                continue
+
+            name = measurand.text.strip()
+            value = value_tag.text.strip()
+            match = re.findall(r"[-+]?\d+(?:\.\d{1,3})?", value)
+            if not match:
+                _LOGGER.warning("Invalid measurement value for %s on float %s: %s", name, float_id, value)
+                continue
+
+            float_data[name] = match[0]
+            _LOGGER.info("Measurement: %s: %s", name, match[0])
+
+        return float_data
+
     scripts = soup.findAll('script')
-
     url_pattern = re.compile(r'/APIKey/latestMeasurements/\d+')
-
     found_url = ''
 
     for script in scripts:
@@ -145,11 +168,18 @@ async def fetch_float_data(cookie, float_id):
         url = URL_BASE + found_url
 
         response = await fetch_secured_data(cookie, url)
+        _LOGGER.debug("Latest measurements HTML response:\n%s", response)
 
         soup = BeautifulSoup(response, 'html.parser')
         container = soup.find('div', class_=CLASS_MEASUREMENT)
+        if container is None:
+            _LOGGER.warning("Could not find measurement container for float %s", float_id)
+            return float_data
+
         measurements = container.findAll('div', class_=CLASS_BREW_LATES_MEASUREMENTS)
-        
+        if not measurements:
+            _LOGGER.warning("No measurements found in Brew Brain response for float %s", float_id)
+
         for measurement in measurements:
             name = measurement.find('span', class_=CLASS_MEASUEMENT_SINGLE_PAGE).text.strip()
             value = measurement.find('b').find('span').text.strip()
@@ -157,7 +187,9 @@ async def fetch_float_data(cookie, float_id):
 
             _LOGGER.info("Measurement: %s: %s", name, value)
             float_data[name] = value
-            
+    else:
+        _LOGGER.warning("No latest measurement URL found for float %s", float_id)
+
     return float_data
     
 
