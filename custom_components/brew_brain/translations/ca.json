@@ -1,0 +1,36 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Connecta amb BrewBrain",
+        "description": "Introdueix les credencials que utilitzes a my.brewbrain.nl.",
+        "data": {
+          "username": "Nom d'usuari",
+          "password": "Contrasenya"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Torna a connectar BrewBrain",
+        "description": "Introdueix la contrasenya actual d'aquest compte de BrewBrain.",
+        "data": {
+          "password": "Contrasenya"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "No s'ha pogut connectar amb BrewBrain.",
+      "invalid_auth": "El nom d'usuari o la contrasenya són incorrectes."
+    },
+    "abort": {
+      "already_configured": "Aquest compte de BrewBrain ja està configurat.",
+      "reauth_successful": "BrewBrain s'ha tornat a connectar correctament."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "temperature": {"name": "Temperatura"},
+      "specific_gravity": {"name": "Densitat específica"},
+      "voltage": {"name": "Voltatge"}
+    }
+  }
+}

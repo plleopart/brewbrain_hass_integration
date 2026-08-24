@@ -1,56 +1,58 @@
-# Brew Brain Integration
+# BrewBrain for Home Assistant
 
-This is a custom integration for Home Assistant to connect with Brew Brain devices.
+Unofficial Home Assistant integration for BrewBrain Float hydrometers. It signs
+in to the BrewBrain web application and exposes the latest temperature, specific
+gravity and battery voltage measurements as Home Assistant sensors.
 
-## Scraping BrewBrain Webpage
+## HACS installation
 
-This integration scrapes the BrewBrain webpage to retrieve data. It uses the `aiohttp` library to make HTTP requests and `beautifulsoup4` to parse the HTML content. The data is then extracted and converted into sensor readings that can be used within Home Assistant.
+1. Open **HACS**.
+2. Open the menu in the top-right corner and select **Custom repositories**.
+3. Add this repository:
 
+   ```text
+   https://github.com/plleopart/brewbrain_hass_integration
+   ```
 
-To perform secured calls to the webpage, this integration uses your Brew Brain username and password to obtain the `PHPSESSID` cookie. This cookie is required to authenticate and maintain a session with the BrewBrain website.
+4. Select category **Integration** and add the repository.
+5. Install **BrewBrain**.
+6. Restart Home Assistant.
+7. Open **Settings > Devices & services > Add integration**.
+8. Search for **BrewBrain** and enter your BrewBrain credentials.
 
-## Installation
+## Manual installation
 
-1. Clone this repository into your Home Assistant `custom_components` directory:
-    ```sh
-    git clone https://github.com/plleopart/brewbrain_hass_integration.git
-    ```
+Copy `custom_components/brew_brain` into Home Assistant's
+`/config/custom_components` directory and restart Home Assistant.
 
-2. Restart Home Assistant.
+The final path must be:
 
-3. Add the Brew Brain integration via the Home Assistant UI.
+```text
+/config/custom_components/brew_brain/manifest.json
+```
 
-## Configuration
+## Entities
 
-1. Go to the Home Assistant UI.
-2. Navigate to `Configuration` -> `Integrations`.
-3. Click on `Add Integration` and search for `Brew Brain`.
-4. Follow the setup instructions to provide your Brew Brain username and password.
+Each BrewBrain Float creates a device containing three sensors:
 
-## Files
+- Temperature in degrees Celsius.
+- Specific gravity.
+- Battery voltage.
 
-- [__init__.py](): Initializes the Brew Brain integration and handles setup and teardown.
-- [config_flow.py](): Manages the configuration flow for setting up the integration.
-- [const.py](): Contains constants used throughout the integration.
-- [manifest.json](): Metadata for the integration.
-- [sensor.py](): Defines the sensor entities for Brew Brain data.
+Measurements are refreshed every 15 minutes. The integration communicates with
+`https://my.brewbrain.nl` and therefore requires internet access. It is an
+unofficial integration based on the current BrewBrain website and may require an
+update if that website changes.
 
-## Dependencies
+## Updates
 
-This integration requires the following Python packages:
-- [bs4](https://pypi.org/project/beautifulsoup4)
-- [aiohttp](https://docs.aiohttp.org/en/stable/)
+Versions are published as GitHub releases and can be updated from HACS. Restart
+Home Assistant after updating the integration.
 
-These dependencies will be installed automatically when you add the integration.
+## Issues
 
-## Usage
-
-Once the integration is set up, you will have access to the following sensors:
-- Temperature
-- Specific Gravity (SG)
-- Voltage
-
-These sensors will be updated at regular intervals as defined in [const.py]().
+Report problems through the
+[GitHub issue tracker](https://github.com/plleopart/brewbrain_hass_integration/issues).
 
 ## License
 

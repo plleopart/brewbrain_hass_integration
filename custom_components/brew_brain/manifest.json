@@ -1,0 +1,13 @@
+{
+  "domain": "brew_brain",
+  "name": "BrewBrain",
+  "codeowners": ["@plleopart"],
+  "config_flow": true,
+  "dependencies": [],
+  "documentation": "https://github.com/plleopart/brewbrain_hass_integration",
+  "integration_type": "hub",
+  "iot_class": "cloud_polling",
+  "issue_tracker": "https://github.com/plleopart/brewbrain_hass_integration/issues",
+  "requirements": ["beautifulsoup4==4.15.0"],
+  "version": "0.2.0"
+}

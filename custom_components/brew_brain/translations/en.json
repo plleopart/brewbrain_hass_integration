@@ -1,0 +1,36 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Connect to BrewBrain",
+        "description": "Enter the credentials used on my.brewbrain.nl.",
+        "data": {
+          "username": "Username",
+          "password": "Password"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Reconnect BrewBrain",
+        "description": "Enter the current password for this BrewBrain account.",
+        "data": {
+          "password": "Password"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Could not connect to BrewBrain.",
+      "invalid_auth": "The username or password is incorrect."
+    },
+    "abort": {
+      "already_configured": "This BrewBrain account is already configured.",
+      "reauth_successful": "BrewBrain was reconnected successfully."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "temperature": {"name": "Temperature"},
+      "specific_gravity": {"name": "Specific gravity"},
+      "voltage": {"name": "Voltage"}
+    }
+  }
+}
