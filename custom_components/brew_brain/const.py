@@ -1,24 +1,17 @@
-"""Constants for the BrewBrain integration."""
-
-from datetime import timedelta
-
 DOMAIN = "brew_brain"
+SCAN_INTERVAL = 900
 
-CONF_USERNAME = "username"
-CONF_PASSWORD = "password"
-
-SCAN_INTERVAL = timedelta(minutes=15)
+COOKIE_HEADER = "Set-Cookie"
 
 URL_BASE = "https://my.brewbrain.nl"
-URL_LOGIN = f"{URL_BASE}/user/login"
-URL_FLOATS = f"{URL_BASE}/float"
-URL_FLOAT = f"{URL_BASE}/mothership/show/"
+URL_LOGIN = "https://my.brewbrain.nl/user/login"
+URL_FLOATS = "https://my.brewbrain.nl/float"
+URL_FLOAT = "https://my.brewbrain.nl/mothership/show/"
 
-CLASS_FLOAT_IDENTIFIER = "FloatIdentifier"
-CLASS_MEASUREMENT = "LatestMeasurementsContainer"
-CLASS_LATEST_MEASUREMENT = "BrewShowLatestMeasurement"
-CLASS_MEASUREMENT_NAME = "MeasurementMeasurand"
+CLASS_FLOAT_IDENTIFIER="FloatIdentifier"
+CLASS_MEASUREMENT="LatestMeasurementsContainer"
+CLASS_BREW_LATES_MEASUREMENTS="BrewShowLatestMeasurement"
+CLASS_MEASUEMENT_SINGLE_PAGE="MeasurementMeasurand"
 
-MEASUREMENT_TEMPERATURE = "Temperature"
-MEASUREMENT_SPECIFIC_GRAVITY = "SG"
-MEASUREMENT_VOLTAGE = "Voltage"
+TEMP_CELSIUS = "ºC"
+ELECTRIC_POTENTIAL_VOLT = "V"

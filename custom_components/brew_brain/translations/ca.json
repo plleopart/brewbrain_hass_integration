@@ -18,6 +18,7 @@
       }
     },
     "error": {
+      "auth_error": "Cal indicar el nom d'usuari i la contrasenya.",
       "cannot_connect": "No s'ha pogut connectar amb BrewBrain.",
       "invalid_auth": "El nom d'usuari o la contrasenya són incorrectes."
     },

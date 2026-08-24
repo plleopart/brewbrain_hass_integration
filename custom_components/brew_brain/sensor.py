@@ -1,122 +1,84 @@
-"""Sensors for BrewBrain Float devices."""
+"""Sensor platform for Brew Brain integration."""
 
-from __future__ import annotations
-
-from dataclasses import dataclass
-
-from homeassistant.components.sensor import (
-    SensorDeviceClass,
-    SensorEntity,
-    SensorEntityDescription,
-    SensorStateClass,
-)
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import UnitOfElectricPotential, UnitOfTemperature
-from homeassistant.core import HomeAssistant
-from homeassistant.helpers.device_registry import DeviceInfo
-from homeassistant.helpers.entity_platform import AddEntitiesCallback
+import logging
+from homeassistant.components.sensor import SensorEntity
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
-
-from .api import BrewBrainFloatData
-from .const import (
-    DOMAIN,
-    MEASUREMENT_SPECIFIC_GRAVITY,
-    MEASUREMENT_TEMPERATURE,
-    MEASUREMENT_VOLTAGE,
-)
-from .coordinator import BrewBrainDataUpdateCoordinator
+from homeassistant.helpers.device_registry import async_get as async_get_device_registry
+from homeassistant.helpers.entity import DeviceInfo
 
 
-@dataclass(frozen=True, kw_only=True)
-class BrewBrainSensorEntityDescription(SensorEntityDescription):
-    """Describe a BrewBrain measurement sensor."""
+from .const import DOMAIN
 
-    measurement_key: str
+_LOGGER = logging.getLogger(__name__)
 
+async def async_setup_entry(hass, entry, async_add_entities):
+    """Set up Brew Brain sensor platform."""
+    coordinator = hass.data[DOMAIN][entry.entry_id]
 
-SENSORS: tuple[BrewBrainSensorEntityDescription, ...] = (
-    BrewBrainSensorEntityDescription(
-        key="temperature",
-        translation_key="temperature",
-        measurement_key=MEASUREMENT_TEMPERATURE,
-        device_class=SensorDeviceClass.TEMPERATURE,
-        native_unit_of_measurement=UnitOfTemperature.CELSIUS,
-        state_class=SensorStateClass.MEASUREMENT,
-    ),
-    BrewBrainSensorEntityDescription(
-        key="specific_gravity",
-        translation_key="specific_gravity",
-        measurement_key=MEASUREMENT_SPECIFIC_GRAVITY,
-        icon="mdi:scale",
-        state_class=SensorStateClass.MEASUREMENT,
-    ),
-    BrewBrainSensorEntityDescription(
-        key="voltage",
-        translation_key="voltage",
-        measurement_key=MEASUREMENT_VOLTAGE,
-        device_class=SensorDeviceClass.VOLTAGE,
-        native_unit_of_measurement=UnitOfElectricPotential.VOLT,
-        state_class=SensorStateClass.MEASUREMENT,
-    ),
-)
+    entities = []
+    for float in coordinator.floats:
+        float_id = float['id']
+        float_name = float['name']
+        entities.append(BrewBrainTemperatureSensor(coordinator, float_id, float_name, entry.entry_id))
+        entities.append(BrewBrainSGSensor(coordinator, float_id, float_name, entry.entry_id))
+        entities.append(BrewBrainVoltageSensor(coordinator, float_id, float_name, entry.entry_id))
+
+    async_add_entities(entities)
 
 
-async def async_setup_entry(
-    hass: HomeAssistant,
-    entry: ConfigEntry,
-    async_add_entities: AddEntitiesCallback,
-) -> None:
-    """Set up BrewBrain sensors."""
-    coordinator: BrewBrainDataUpdateCoordinator = hass.data[DOMAIN][entry.entry_id]
-    async_add_entities(
-        BrewBrainSensor(coordinator, float_identifier, description)
-        for float_identifier in coordinator.data
-        for description in SENSORS
-    )
+class BrewBrainSensor(CoordinatorEntity, SensorEntity):
+    """Representation of a Brew Brain sensor."""
 
-
-class BrewBrainSensor(CoordinatorEntity[BrewBrainDataUpdateCoordinator], SensorEntity):
-    """A measurement from a BrewBrain Float."""
-
-    entity_description: BrewBrainSensorEntityDescription
-    _attr_has_entity_name = True
-
-    def __init__(
-        self,
-        coordinator: BrewBrainDataUpdateCoordinator,
-        float_identifier: str,
-        description: BrewBrainSensorEntityDescription,
-    ) -> None:
-        """Initialize a BrewBrain sensor."""
+    def __init__(self, coordinator, float_id, float_name, entry_id, sensor_type, unit_of_measurement, icon, device_class=None):
+        """Initialize the sensor."""
         super().__init__(coordinator)
-        self.entity_description = description
-        self._float_identifier = float_identifier
-        data = coordinator.data[float_identifier]
-        # Preserve the IDs used by versions before 0.2.0 so existing entity
-        # registry entries, dashboards and automations continue to work.
-        self._attr_unique_id = f"{float_identifier}_{description.measurement_key}"
+        self.float_id = float_id
+        self.float_name = float_name
+        self.sensor_type = sensor_type
+        self._attr_native_unit_of_measurement = unit_of_measurement
+        self._attr_name = f"{float_name} {sensor_type}"
+        self._attr_unique_id = f"{float_id}_{sensor_type}"
+        self._state = None
+        self._attr_icon = icon
+        self._attr_device_class = device_class
+        self._attr_state_class = "measurement"
         self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, float_identifier)},
-            name=data.device.name,
-            manufacturer="BrewBrain",
+            identifiers={(DOMAIN, float_id)},
+            name=float_name,
+            manufacturer="Brew Brain",
             model="Float",
-            configuration_url="https://my.brewbrain.nl/float",
+            via_device=(DOMAIN, entry_id),
         )
 
     @property
-    def native_value(self) -> float | None:
-        """Return the latest measurement."""
-        data = self._float_data
-        if data is None:
-            return None
-        return data.measurements.get(self.entity_description.measurement_key)
+    def state(self):
+        """Return the state of the sensor."""
+        data = self.coordinator.data.get(self.float_id)
+        _LOGGER.debug("Retrieving state for %s", self.name)
+        if data:
+            self._state = data.get(self.sensor_type)
+            _LOGGER.debug("Retrieved state for %s: %s", self.name, self._state)
+        else:
+            _LOGGER.warning("No data found for float_id %s and sensor_type %s", self.float_id, self.sensor_type)
+        return self._state
+    
 
-    @property
-    def available(self) -> bool:
-        """Return whether this measurement is available."""
-        return super().available and self.native_value is not None
+class BrewBrainTemperatureSensor(BrewBrainSensor):
+    """Representation of a Brew Brain Temperature sensor."""
 
-    @property
-    def _float_data(self) -> BrewBrainFloatData | None:
-        data = self.coordinator.data or {}
-        return data.get(self._float_identifier)
+    def __init__(self, coordinator, float_id, float_name, entry_id):
+        super().__init__(coordinator, float_id, float_name, entry_id, "Temperature", "ºC", "mdi:thermometer", "temperature")
+
+
+class BrewBrainSGSensor(BrewBrainSensor):
+    """Representation of a Brew Brain Specific Gravity sensor."""
+
+    def __init__(self, coordinator, float_id, float_name, entry_id):
+        super().__init__(coordinator, float_id, float_name, entry_id, "SG", None, "mdi:scale", None)
+
+
+class BrewBrainVoltageSensor(BrewBrainSensor):
+    """Representation of a Brew Brain Voltage sensor."""
+
+    def __init__(self, coordinator, float_id, float_name, entry_id):
+        super().__init__(coordinator, float_id, float_name, entry_id, "Voltage", "V", "mdi:flash", "voltage")
