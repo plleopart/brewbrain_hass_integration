@@ -92,7 +92,9 @@ class BrewBrainSensor(CoordinatorEntity[BrewBrainDataUpdateCoordinator], SensorE
         self.entity_description = description
         self._float_identifier = float_identifier
         data = coordinator.data[float_identifier]
-        self._attr_unique_id = f"{float_identifier}_{description.key}"
+        # Preserve the IDs used by versions before 0.2.0 so existing entity
+        # registry entries, dashboards and automations continue to work.
+        self._attr_unique_id = f"{float_identifier}_{description.measurement_key}"
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, float_identifier)},
             name=data.device.name,
