@@ -1,9 +1,11 @@
 """Tests for BrewBrain HTML parsing."""
 
 from importlib import util
+from http.cookies import SimpleCookie
 from pathlib import Path
 import sys
 from types import ModuleType
+from types import SimpleNamespace
 
 import pytest
 
@@ -25,6 +27,20 @@ def _load_module(name: str):
 
 _load_module("const")
 api = _load_module("api")
+
+
+def _response_with_cookie(value: str, history: tuple = ()):
+    cookies = SimpleCookie()
+    cookies.load(f"PHPSESSID={value}")
+    return SimpleNamespace(cookies=cookies, history=history)
+
+
+def test_find_session_cookie_prefers_final_response() -> None:
+    """Use the regenerated authenticated session instead of an older one."""
+    pre_login = _response_with_cookie("pre-login-session")
+    authenticated = _response_with_cookie("authenticated-session", history=(pre_login,))
+
+    assert api._find_session_cookie(authenticated) == "PHPSESSID=authenticated-session"
 
 
 def test_parse_float_list() -> None:

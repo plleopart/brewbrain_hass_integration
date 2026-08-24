@@ -151,8 +151,11 @@ class BrewBrainClient:
 
 
 def _find_session_cookie(response: ClientResponse) -> str | None:
-    """Find PHPSESSID on the final login response or its redirects."""
-    for candidate in (*response.history, response):
+    """Find the newest PHPSESSID set during the login redirect chain."""
+    # BrewBrain can regenerate the PHP session ID while authenticating. Check
+    # the final response first and then walk redirects from newest to oldest so
+    # an invalidated pre-login session never wins.
+    for candidate in (response, *reversed(response.history)):
         cookie = candidate.cookies.get("PHPSESSID")
         if cookie is not None:
             return f"PHPSESSID={cookie.value}"
