@@ -5,7 +5,6 @@ from __future__ import annotations
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .api import BrewBrainClient
 from .const import CONF_PASSWORD, CONF_USERNAME, DOMAIN
@@ -17,7 +16,6 @@ PLATFORMS: list[Platform] = [Platform.SENSOR]
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up BrewBrain from a config entry."""
     client = BrewBrainClient(
-        async_get_clientsession(hass),
         entry.data[CONF_USERNAME],
         entry.data[CONF_PASSWORD],
     )

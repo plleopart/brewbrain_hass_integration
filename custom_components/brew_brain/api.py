@@ -2,13 +2,11 @@
 
 from __future__ import annotations
 
-from collections.abc import AsyncIterator
-from contextlib import asynccontextmanager
 from dataclasses import dataclass
 import re
 from urllib.parse import urljoin
 
-from aiohttp import ClientError, ClientResponse, ClientResponseError, ClientSession
+from aiohttp import ClientError, ClientSession
 from bs4 import BeautifulSoup
 
 from .const import (
@@ -64,12 +62,10 @@ class BrewBrainClient:
 
     def __init__(
         self,
-        session: ClientSession,
         username: str,
         password: str,
     ) -> None:
         """Initialize the client."""
-        self._session = session
         self._username = username
         self._password = password
 
@@ -98,68 +94,67 @@ class BrewBrainClient:
             "password": self._password,
             "stay_signed_in": "off",
         }
-        async with self._async_response("post", URL_LOGIN, data=payload) as response:
-            cookie = _find_session_cookie(response)
-            if cookie is None:
-                raise BrewBrainAuthenticationError("BrewBrain login was not accepted")
-            return cookie
+
+        try:
+            # Keep a dedicated cookie-aware session for the complete login
+            # redirect chain. Home Assistant's shared session intentionally
+            # uses a dummy cookie jar and breaks BrewBrain authentication.
+            async with ClientSession() as session:
+                async with session.post(
+                    URL_LOGIN,
+                    data=payload,
+                    timeout=REQUEST_TIMEOUT,
+                ) as response:
+                    if response.status != 200:
+                        raise BrewBrainAuthenticationError(
+                            "BrewBrain login was not accepted"
+                        )
+                    cookie_header = response.headers.get("Set-Cookie")
+                    if cookie_header is None:
+                        raise BrewBrainAuthenticationError(
+                            "BrewBrain did not return a session cookie"
+                        )
+                    return cookie_header.split(";", 1)[0]
+        except BrewBrainAuthenticationError:
+            raise
+        except (ClientError, TimeoutError) as err:
+            raise BrewBrainConnectionError("Error requesting BrewBrain login") from err
 
     async def _async_list_floats(self, cookie: str) -> list[BrewBrainFloat]:
-        async with self._async_response(
-            "post", URL_FLOATS, headers={"Cookie": cookie}
-        ) as response:
-            if response.url.path.rstrip("/").endswith("/user/login"):
-                raise BrewBrainAuthenticationError(
-                    "BrewBrain session is not authenticated"
-                )
-            return _parse_float_list(await response.text())
+        html = await self._async_post_with_cookie(cookie, URL_FLOATS)
+        return _parse_float_list(html)
 
     async def _async_get_float_measurements(
         self, cookie: str, float_identifier: str
     ) -> dict[str, float]:
-        async with self._async_response(
-            "post",
-            f"{URL_FLOAT}{float_identifier}",
-            headers={"Cookie": cookie},
-        ) as response:
-            latest_url = _parse_latest_measurements_url(await response.text())
+        html = await self._async_post_with_cookie(
+            cookie, f"{URL_FLOAT}{float_identifier}"
+        )
+        latest_url = _parse_latest_measurements_url(html)
 
-        async with self._async_response(
-            "post", latest_url, headers={"Cookie": cookie}
-        ) as response:
-            return _parse_measurements(await response.text())
+        html = await self._async_post_with_cookie(cookie, latest_url)
+        return _parse_measurements(html)
 
-    @asynccontextmanager
-    async def _async_response(
-        self, method: str, url: str, **kwargs
-    ) -> AsyncIterator[ClientResponse]:
+    async def _async_post_with_cookie(self, cookie: str, url: str) -> str:
+        """POST using the session cookie, matching the original integration."""
         try:
-            async with self._session.request(
-                method,
-                url,
-                timeout=REQUEST_TIMEOUT,
-                **kwargs,
-            ) as response:
-                response.raise_for_status()
-                yield response
-        except ClientResponseError as err:
-            if err.status in (401, 403):
-                raise BrewBrainAuthenticationError from err
-            raise BrewBrainConnectionError(f"Error requesting {url}") from err
+            async with ClientSession() as session:
+                async with session.post(
+                    url,
+                    headers={"Cookie": cookie},
+                    timeout=REQUEST_TIMEOUT,
+                ) as response:
+                    if response.status in (401, 403):
+                        raise BrewBrainAuthenticationError
+                    if response.status != 200:
+                        raise BrewBrainConnectionError(
+                            f"BrewBrain returned HTTP {response.status} for {url}"
+                        )
+                    return await response.text()
+        except (BrewBrainAuthenticationError, BrewBrainConnectionError):
+            raise
         except (ClientError, TimeoutError) as err:
             raise BrewBrainConnectionError(f"Error requesting {url}") from err
-
-
-def _find_session_cookie(response: ClientResponse) -> str | None:
-    """Find the newest PHPSESSID set during the login redirect chain."""
-    # BrewBrain can regenerate the PHP session ID while authenticating. Check
-    # the final response first and then walk redirects from newest to oldest so
-    # an invalidated pre-login session never wins.
-    for candidate in (response, *reversed(response.history)):
-        cookie = candidate.cookies.get("PHPSESSID")
-        if cookie is not None:
-            return f"PHPSESSID={cookie.value}"
-    return None
 
 
 def _parse_float_list(html: str) -> list[BrewBrainFloat]:

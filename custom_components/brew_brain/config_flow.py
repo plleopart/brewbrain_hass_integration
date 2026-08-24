@@ -8,7 +8,6 @@ import voluptuous as vol
 
 from homeassistant import config_entries
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .api import BrewBrainAuthenticationError, BrewBrainClient, BrewBrainError
 from .const import CONF_PASSWORD, CONF_USERNAME, DOMAIN
@@ -28,9 +27,7 @@ class BrewBrainConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             username = user_input[CONF_USERNAME].strip()
             password = user_input[CONF_PASSWORD]
-            client = BrewBrainClient(
-                async_get_clientsession(self.hass), username, password
-            )
+            client = BrewBrainClient(username, password)
 
             try:
                 await client.async_validate_credentials()
@@ -71,9 +68,7 @@ class BrewBrainConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             username = entry.data[CONF_USERNAME]
             password = user_input[CONF_PASSWORD]
-            client = BrewBrainClient(
-                async_get_clientsession(self.hass), username, password
-            )
+            client = BrewBrainClient(username, password)
             try:
                 await client.async_validate_credentials()
             except BrewBrainAuthenticationError:
